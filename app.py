@@ -4,176 +4,460 @@ import pandas as pd
 import re
 import os
 
-# =========================
-# LOAD DATASET
-# =========================
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score
+)
 
-manual_data = pd.read_csv("Datasets/datasets/manual_testing.csv")
+
+# ============================================================
+# APP
+# ============================================================
 
 app = Flask(__name__)
 
 
-# =========================
-# LOAD TRAINED MODELS
-# =========================
+# ============================================================
+# LOAD DATASET
+# ============================================================
 
-vectorization = pickle.load(open("vectorizer.pkl", "rb"))
-LR = pickle.load(open("LR_model.pkl", "rb"))
-DT = pickle.load(open("DT_model.pkl", "rb"))
-GB = pickle.load(open("GB_model.pkl", "rb"))
-RF = pickle.load(open("RF_model.pkl", "rb"))
+DATASET_PATH = "Datasets/datasets/manual_testing.csv"
+
+try:
+    manual_data = pd.read_csv(DATASET_PATH)
+
+    # Make sure required columns exist
+    required_columns = ["text", "class"]
+
+    for column in required_columns:
+        if column not in manual_data.columns:
+            raise ValueError(
+                f"Required column '{column}' not found in dataset."
+            )
+
+    manual_data["text"] = manual_data["text"].fillna("")
+
+except Exception as e:
+    print("Dataset loading error:", e)
+    manual_data = pd.DataFrame(
+        columns=["title", "text", "subject", "date", "class"]
+    )
 
 
-# =========================
+# ============================================================
+# LOAD ONE MODEL ONLY
+# ============================================================
+
+try:
+
+    vectorization = pickle.load(
+        open("vectorizer.pkl", "rb")
+    )
+
+    LR = pickle.load(
+        open("LR_model.pkl", "rb")
+    )
+
+except Exception as e:
+
+    print("Model loading error:", e)
+
+    vectorization = None
+    LR = None
+
+
+# ============================================================
 # TEXT PREPROCESSING
-# =========================
+# ============================================================
 
 def wordopt(text):
+
+    text = str(text)
+
     text = text.lower()
-    text = re.sub(r'\[.*?\]', '', text)
-    text = re.sub(r"\\W", " ", text)
-    text = re.sub(r'https?://\S+|www\.\S+', '', text)
-    text = re.sub(r'<.*?>+', '', text)
-    text = re.sub(r'[%s]' % re.escape(r"""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""), '', text)
-    text = re.sub(r'\n', '', text)
-    text = re.sub(r'\w*\d\w*', '', text)
+
+    text = re.sub(
+        r'\[.*?\]',
+        '',
+        text
+    )
+
+    text = re.sub(
+        r"\\W",
+        " ",
+        text
+    )
+
+    text = re.sub(
+        r'https?://\S+|www\.\S+',
+        '',
+        text
+    )
+
+    text = re.sub(
+        r'<.*?>+',
+        '',
+        text
+    )
+
+    text = re.sub(
+        r'[%s]' %
+        re.escape(
+            r"""!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~"""
+        ),
+        '',
+        text
+    )
+
+    text = re.sub(
+        r'\n',
+        '',
+        text
+    )
+
+    text = re.sub(
+        r'\w*\d\w*',
+        '',
+        text
+    )
 
     return text
 
 
-# =========================
-# SAME LABEL FUNCTION
-# AS YOUR NOTEBOOK
-# =========================
+# ============================================================
+# LABEL FUNCTION
+# ============================================================
 
-def output_lable(n):
+def output_label(n):
+
+    n = int(n)
+
     if n == 0:
         return "Fake News"
-    elif n == 1:
-        return "Not a Fake News"
+
+    return "Not a Fake News"
 
 
-# =========================
+# ============================================================
+# MODEL PREDICTION
+# ============================================================
+
+def predict_news(news):
+
+    if vectorization is None or LR is None:
+        raise RuntimeError(
+            "Model files could not be loaded."
+        )
+
+    cleaned_news = wordopt(news)
+
+    vectorized_news = vectorization.transform(
+        [cleaned_news]
+    )
+
+    prediction = LR.predict(
+        vectorized_news
+    )[0]
+
+    result = output_label(prediction)
+
+    # Confidence
+    confidence = None
+
+    try:
+
+        probabilities = LR.predict_proba(
+            vectorized_news
+        )[0]
+
+        confidence = round(
+            float(max(probabilities)) * 100,
+            2
+        )
+
+    except Exception:
+        confidence = None
+
+    return result, confidence
+
+
+# ============================================================
 # HOME PAGE
-# =========================
+# ============================================================
 
 @app.route("/")
 def home():
 
-    fake_rows = manual_data[manual_data["class"] == 0]
-    true_rows = manual_data[manual_data["class"] == 1]
-
-    fake_example = fake_rows.sample(1).iloc[0]["text"]
-    true_example = true_rows.sample(1).iloc[0]["text"]
-
     return render_template(
-        "index.html",
-        fake_example=fake_example,
-        true_example=true_example
+        "index.html"
     )
 
-# =========================
-# PREDICTION
-# =========================
 
-@app.route("/predict", methods=["POST"])
-def predict():
+# ============================================================
+# DATASET API
+# ============================================================
 
-    data = request.get_json()
+@app.route("/dataset")
+def dataset():
 
-    news = data.get("news", "")
+    try:
 
-    if not news.strip():
+        if manual_data.empty:
+
+            return jsonify({
+                "news": []
+            })
+
+        news = []
+
+        for index, row in manual_data.iterrows():
+
+            label = output_label(
+                row["class"]
+            )
+
+            news.append({
+
+                "id": int(index),
+
+                "title": str(
+                    row.get("title", "")
+                ),
+
+                "text": str(
+                    row.get("text", "")
+                ),
+
+                "subject": str(
+                    row.get("subject", "")
+                ),
+
+                "date": str(
+                    row.get("date", "")
+                ),
+
+                "actual_label": label
+
+            })
+
         return jsonify({
-            "result": "Please enter some news."
+            "news": news
+        })
+
+    except Exception as e:
+
+        print("Dataset API error:", e)
+
+        return jsonify({
+            "error": "Could not load dataset.",
+            "news": []
+        }), 500
+
+
+# ============================================================
+# DASHBOARD METRICS
+# ============================================================
+
+@app.route("/metrics")
+def metrics():
+
+    try:
+
+        if manual_data.empty:
+
+            return jsonify({
+                "accuracy": 0,
+                "precision": 0,
+                "recall": 0,
+                "f1": 0,
+                "total": 0,
+                "fake": 0,
+                "real": 0
+            })
+
+
+        # Prepare dataset
+        texts = manual_data["text"].apply(
+            wordopt
+        )
+
+        actual = manual_data["class"].astype(int)
+
+
+        # Vectorize
+        X = vectorization.transform(
+            texts
+        )
+
+
+        # Predict using ONLY Logistic Regression
+        predicted = LR.predict(X)
+
+
+        # Calculate metrics
+        accuracy = accuracy_score(
+            actual,
+            predicted
+        )
+
+        precision = precision_score(
+            actual,
+            predicted,
+            zero_division=0
+        )
+
+        recall = recall_score(
+            actual,
+            predicted,
+            zero_division=0
+        )
+
+        f1 = f1_score(
+            actual,
+            predicted,
+            zero_division=0
+        )
+
+
+        fake_count = int(
+            (actual == 0).sum()
+        )
+
+        real_count = int(
+            (actual == 1).sum()
+        )
+
+
+        return jsonify({
+
+            "accuracy": round(
+                accuracy * 100,
+                2
+            ),
+
+            "precision": round(
+                precision * 100,
+                2
+            ),
+
+            "recall": round(
+                recall * 100,
+                2
+            ),
+
+            "f1": round(
+                f1 * 100,
+                2
+            ),
+
+            "total": int(
+                len(manual_data)
+            ),
+
+            "fake": fake_count,
+
+            "real": real_count
+
         })
 
 
-    # Prepare news
-    testing_news = {
-        "text": [news]
-    }
+    except Exception as e:
 
-    new_def_test = pd.DataFrame(testing_news)
+        print("Metrics error:", e)
 
-
-    # Apply same preprocessing
-    new_def_test["text"] = new_def_test["text"].apply(wordopt)
+        return jsonify({
+            "error": "Could not calculate model metrics."
+        }), 500
 
 
-    # Get text
-    new_x_test = new_def_test["text"]
+# ============================================================
+# PREDICTION API
+# ============================================================
+
+@app.route(
+    "/predict",
+    methods=["POST"]
+)
+def predict():
+
+    try:
+
+        data = request.get_json(
+            silent=True
+        )
+
+        if not data:
+
+            return jsonify({
+                "success": False,
+                "error": "Invalid request."
+            }), 400
 
 
-    # Vectorization
-    new_xv_test = vectorization.transform(new_x_test)
+        news = str(
+            data.get("news", "")
+        ).strip()
 
 
-    # Predictions
-    pred_LR = LR.predict(new_xv_test)
-    pred_DT = DT.predict(new_xv_test)
-    pred_GB = GB.predict(new_xv_test)
-    pred_RF = RF.predict(new_xv_test)
+        if not news:
+
+            return jsonify({
+                "success": False,
+                "error": "Please enter some news."
+            }), 400
 
 
-    # Convert predictions to labels
-    lr_result = output_lable(pred_LR[0])
-    dt_result = output_lable(pred_DT[0])
-    gb_result = output_lable(pred_GB[0])
-    rf_result = output_lable(pred_RF[0])
+        # Predict
+        result, confidence = predict_news(
+            news
+        )
 
 
-    # Count predictions
-    predictions = [
-        lr_result,
-        dt_result,
-        gb_result,
-        rf_result
-    ]
+        return jsonify({
 
-    fake_count = predictions.count("Fake News")
-    real_count = predictions.count("Not a Fake News")
+            "success": True,
 
+            "result": result,
 
-    # Majority prediction
-    if fake_count > real_count:
-        final_result = "Fake News"
-    elif real_count > fake_count:
-        final_result = "Not a Fake News"
-    else:
-        final_result = "Mixed Result"
+            "confidence": confidence,
+
+            "model": "Logistic Regression",
+
+            "news": news
+
+        })
 
 
-    return jsonify({
+    except Exception as e:
 
-        "result": final_result,
+        print("Prediction error:", e)
 
-        "lr": lr_result,
+        return jsonify({
 
-        "dt": dt_result,
+            "success": False,
 
-        "gb": gb_result,
+            "error": "Prediction failed."
 
-        "rf": rf_result,
-
-        "description":
-            f"LR: {lr_result} | "
-            f"DT: {dt_result} | "
-            f"GB: {gb_result} | "
-            f"RF: {rf_result}"
-    })
+        }), 500
 
 
-# =========================
+# ============================================================
 # RUN APPLICATION
-# =========================
-
-
-
-
+# ============================================================
 
 if __name__ == "__main__":
+
     app.run(
+
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", 5000))
-    )
+
+        port=int(
+            os.environ.get(
+                "PORT",
+                5000
+            )
+        )
+
+)
