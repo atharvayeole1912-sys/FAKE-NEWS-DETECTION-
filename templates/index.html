@@ -1,129 +1,346 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>TruthLens - Fake News Detector</title>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <title>TruthLens - Fake News Detection</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 </head>
 
 <body>
 
-    <nav class="navbar">
-        <div class="logo">
-            <span>◈</span> TruthLens
-        </div>
+<!-- =========================================================
+     NAVBAR
+========================================================= -->
 
-        <div class="nav-links">
-            <a href="#detector">Detector</a>
-            <a href="#about">About</a>
-        </div>
-    </nav>
+<nav class="navbar">
+
+    <div class="logo">
+        <span>◈</span> TruthLens
+    </div>
+
+    <div class="nav-links">
+
+        <a href="#dashboard">
+            Dashboard
+        </a>
+
+        <a href="#dataset">
+            Dataset
+        </a>
+
+        <a href="#detector">
+            Detector
+        </a>
+
+        <a href="#about">
+            About
+        </a>
+
+    </div>
+
+</nav>
 
 
-    <main>
+<main>
 
-        <section class="hero">
+<!-- =========================================================
+     HERO
+========================================================= -->
 
-            <div class="badge">
-                ✦ AI-POWERED NEWS VERIFICATION
-            </div>
+<section class="hero">
 
-            <h1>
-                Detect <span>Fake News</span><br>
-                Before You Share
-            </h1>
+    <div class="badge">
+        ✦ AI-POWERED NEWS VERIFICATION
+    </div>
 
-            <p class="subtitle">
-                Analyze news articles using machine learning and
-                identify potentially misleading information.
+    <h1>
+        Detect <span>Fake News</span><br>
+        Before You Share
+    </h1>
+
+    <p class="subtitle">
+        Analyze news articles using machine learning
+        and identify potentially misleading information.
+    </p>
+
+</section>
+
+
+<!-- =========================================================
+     MODEL DASHBOARD
+========================================================= -->
+
+<section class="dashboard"
+         id="dashboard">
+
+    <div class="section-heading">
+
+        <div>
+
+            <p class="section-label">
+                MODEL PERFORMANCE
             </p>
 
-        </section>
+            <h2>
+                Fake News Detection Dashboard
+            </h2>
 
+            <p class="section-description">
+                Performance metrics of the trained
+                Logistic Regression model.
+            </p>
 
-        <section class="detector-card" id="detector">
+        </div>
 
-            <div class="card-header">
-                <div>
-                    <h2>News Analysis</h2>
-                    <p>Paste a headline or news article below.</p>
-                </div>
+        <div class="model-badge">
+            🧠 Logistic Regression
+        </div>
 
-                <div class="status">
-                    ● SYSTEM READY
-                </div>
-            </div>
-
-
-            <textarea
-                id="newsText"
-                placeholder="Paste your news headline or article here..."
-            ></textarea>
-
-
-            <div class="bottom-row">
-
-                <span id="charCount">0 characters</span>
-
-                <button onclick="analyzeNews()">
-                    Analyze News
-                    <span>→</span>
-                </button>
-
-            </div>
-
-        </section>
-
-    </section>
-
-
-
-<!-- DATASET EXAMPLES -->
-
-<section class="dataset-examples">
-
-    <div class="dataset-header">
-        <h2>Dataset Examples</h2>
-        <p>Test news directly from the training datasets.</p>
     </div>
 
 
-    <!-- FAKE NEWS -->
+    <!-- METRICS -->
 
-    <div class="dataset-box fake-box">
+    <div class="metrics-grid">
 
-        <div class="dataset-title">
-            🔴 Fake Dataset Example
+        <div class="metric-card">
+
+            <div class="metric-icon">
+                🎯
+            </div>
+
+            <p>
+                Accuracy
+            </p>
+
+            <h3 id="accuracy">
+                Loading...
+            </h3>
+
         </div>
 
-        <p id="fakeExample">
-            {{ fake_example }}
-        </p>
 
-        <button onclick="useNews('fake')">
-            Use This News
+        <div class="metric-card">
+
+            <div class="metric-icon">
+                📊
+            </div>
+
+            <p>
+                Precision
+            </p>
+
+            <h3 id="precision">
+                Loading...
+            </h3>
+
+        </div>
+
+
+        <div class="metric-card">
+
+            <div class="metric-icon">
+                🔍
+            </div>
+
+            <p>
+                Recall
+            </p>
+
+            <h3 id="recall">
+                Loading...
+            </h3>
+
+        </div>
+
+
+        <div class="metric-card">
+
+            <div class="metric-icon">
+                ⚡
+            </div>
+
+            <p>
+                F1 Score
+            </p>
+
+            <h3 id="f1">
+                Loading...
+            </h3>
+
+        </div>
+
+    </div>
+
+
+    <!-- DATASET SUMMARY -->
+
+    <div class="dataset-summary">
+
+        <div>
+
+            <span
+                class="summary-number"
+                id="totalNews">
+                --
+            </span>
+
+            <span class="summary-label">
+                Total Articles
+            </span>
+
+        </div>
+
+
+        <div>
+
+            <span
+                class="summary-number fake-number"
+                id="fakeNews">
+                --
+            </span>
+
+            <span class="summary-label">
+                Fake News
+            </span>
+
+        </div>
+
+
+        <div>
+
+            <span
+                class="summary-number real-number"
+                id="realNews">
+                --
+            </span>
+
+            <span class="summary-label">
+                Real News
+            </span>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     DATASET
+========================================================= -->
+
+<section class="news-dataset"
+         id="dataset">
+
+    <div class="section-heading">
+
+        <div>
+
+            <p class="section-label">
+                NEWS DATABASE
+            </p>
+
+            <h2>
+                Select News to Analyze
+            </h2>
+
+            <p class="section-description">
+                Select any article from the dataset.
+                The system will automatically analyze it.
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- SEARCH / FILTER -->
+
+    <div class="dataset-controls">
+
+        <input
+            type="text"
+            id="searchNews"
+            placeholder="🔎 Search news..."
+            oninput="filterNews()"
+        >
+
+
+        <select
+            id="filterType"
+            onchange="filterNews()">
+
+            <option value="all">
+                All News
+            </option>
+
+            <option value="fake">
+                Fake News
+            </option>
+
+            <option value="real">
+                Real News
+            </option>
+
+        </select>
+
+
+        <button
+            class="select-all-btn"
+            onclick="selectAllNews()">
+
+            Select All
+
+        </button>
+
+
+        <button
+            class="clear-btn"
+            onclick="clearSelection()">
+
+            Clear
+
         </button>
 
     </div>
 
 
-    <!-- TRUE NEWS -->
+    <!-- NEWS LIST -->
 
-    <div class="dataset-box true-box">
+    <div
+        id="newsList"
+        class="news-list">
 
-        <div class="dataset-title">
-            🟢 True Dataset Example
+        <div class="loading">
+            Loading news dataset...
         </div>
 
-        <p id="trueExample">
-            {{ true_example }}
-        </p>
+    </div>
 
-        <button onclick="useNews('true')">
-            Use This News
+
+    <!-- SELECTED NEWS -->
+
+    <div class="analyze-selected">
+
+        <span id="selectedCount">
+            0 articles selected
+        </span>
+
+
+        <button
+            class="analyze-btn"
+            onclick="analyzeSelectedNews()">
+
+            🧠 Analyze Selected News →
+
         </button>
 
     </div>
@@ -131,74 +348,225 @@
 </section>
 
 
-<section class="result-card" id="result">
-        <section class="result-card" id="result">
+<!-- =========================================================
+     MANUAL DETECTOR
+========================================================= -->
 
-            <div class="result-icon">?</div>
+<section
+    class="detector-card"
+    id="detector">
 
-            <div>
-                <p class="result-label">ANALYSIS RESULT</p>
-                <h2 id="resultText">Waiting for analysis</h2>
-                <p id="resultDescription">
-                    Enter a news article above to begin.
-                </p>
-            </div>
+    <div class="card-header">
 
-        </section>
+        <div>
 
-
-        <section class="features">
-
-            <div class="feature">
-                <div class="feature-icon">🧠</div>
-                <h3>Machine Learning</h3>
-                <p>
-                    Uses trained ML models to classify news content.
-                </p>
-            </div>
-
-            <div class="feature">
-                <div class="feature-icon">🔍</div>
-                <h3>Source Tracking</h3>
-                <p>
-                    Helps investigate the origin of news information.
-                </p>
-            </div>
-
-            <div class="feature">
-                <div class="feature-icon">⚡</div>
-                <h3>Fast Analysis</h3>
-                <p>
-                    Get prediction results within seconds.
-                </p>
-            </div>
-
-        </section>
-
-
-        <section class="about" id="about">
-
-            <p class="section-label">ABOUT THE PROJECT</p>
-
-            <h2>Intelligent News Verification</h2>
+            <h2>
+                Manual News Analysis
+            </h2>
 
             <p>
-                TruthLens is a machine-learning based fake news detection
-                system designed to help users evaluate the credibility
-                of online news content.
+                Paste a headline or complete news article.
             </p>
 
-        </section>
+        </div>
 
-    </main>
+        <div class="status">
+            ● SYSTEM READY
+        </div>
+
+    </div>
 
 
-    <footer>
-        <p>Fake News Detection • Machine Learning Project</p>
-    </footer>
+    <textarea
+        id="newsText"
+        placeholder="Paste your news headline or article here..."
+        oninput="updateCharacterCount()"
+    ></textarea>
 
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <div class="bottom-row">
+
+        <span id="charCount">
+            0 characters
+        </span>
+
+
+        <button onclick="analyzeNews()">
+
+            Analyze News
+            <span>→</span>
+
+        </button>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     RESULT
+========================================================= -->
+
+<section
+    class="result-card"
+    id="result">
+
+    <div
+        class="result-icon"
+        id="resultIcon">
+
+        ?
+
+    </div>
+
+
+    <div class="result-content">
+
+        <p class="result-label">
+            ANALYSIS RESULT
+        </p>
+
+
+        <h2 id="resultText">
+            Waiting for analysis
+        </h2>
+
+
+        <p id="resultDescription">
+            Select a dataset article or enter
+            news manually to begin.
+        </p>
+
+
+        <div
+            class="result-details"
+            id="resultDetails">
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     FEATURES
+========================================================= -->
+
+<section class="features">
+
+    <div class="feature">
+
+        <div class="feature-icon">
+            🧠
+        </div>
+
+        <h3>
+            Machine Learning
+        </h3>
+
+        <p>
+            Uses a trained Logistic Regression
+            model to classify news content.
+        </p>
+
+    </div>
+
+
+    <div class="feature">
+
+        <div class="feature-icon">
+            📊
+        </div>
+
+        <h3>
+            Performance Dashboard
+        </h3>
+
+        <p>
+            View accuracy, precision, recall
+            and F1-score of the model.
+        </p>
+
+    </div>
+
+
+    <div class="feature">
+
+        <div class="feature-icon">
+            ⚡
+        </div>
+
+        <h3>
+            Fast Analysis
+        </h3>
+
+        <p>
+            Get prediction results within seconds
+            using the trained model.
+        </p>
+
+    </div>
+
+</section>
+
+
+<!-- =========================================================
+     ABOUT
+========================================================= -->
+
+<section
+    class="about"
+    id="about">
+
+    <p class="section-label">
+        ABOUT THE PROJECT
+    </p>
+
+    <h2>
+        Intelligent News Verification
+    </h2>
+
+    <p>
+        TruthLens is a machine-learning based
+        fake news detection system designed to
+        help users evaluate the credibility of
+        online news content.
+    </p>
+
+
+    <div class="warning-box">
+
+        ⚠️ This system provides a machine-learning
+        prediction and should not be treated as
+        absolute proof that a news article is true
+        or false.
+
+    </div>
+
+</section>
+
+</main>
+
+
+<!-- =========================================================
+     FOOTER
+========================================================= -->
+
+<footer>
+
+    <p>
+        TruthLens • Fake News Detection •
+        Machine Learning Project
+    </p>
+
+</footer>
+
+
+<script
+    src="{{ url_for('static', filename='script.js') }}">
+</script>
 
 </body>
+
 </html>
